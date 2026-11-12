@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>COMING SOON — AFTER HOURS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #040406;
+      --surface: rgba(255, 255, 255, 0.035);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #f5f5f7;
+      --muted: #8a8a98;
+      --accent-1: #ff2a85; /* Neon Rose */
+      --accent-2: #7928ca; /* Velvet Violet */
+      --accent-3: #f5d076; /* Champagne Gold */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* =========================================
+       DISCO AMBIENT LIGHTING & PRISM CANVAS
+       ========================================= */
+    #disco-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .spotlight-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(
+        650px circle at var(--mouse-x, 50%) var(--mouse-y, 35%),
+        rgba(255, 42, 133, 0.12),
+        rgba(121, 40, 202, 0.08) 40%,
+        transparent 75%
+      );
+      transition: background 0.1s ease;
+    }
+
+    /* Subtle film grain for luxury texture */
+    .noise {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    /* =========================================
+       LAYOUT SHELL
+       ========================================= */
+    .wrapper {
+      position: relative;
+      z-index: 3;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 2rem clamp(1.5rem, 5vw, 4rem);
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* =========================================
+       HEADER / NAV
+       ========================================= */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 1rem;
+    }
+
+    .brand {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-decoration: none;
+    }
+
+    .disco-orb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, #fff, var(--accent-3), var(--accent-1), var(--accent-2), #fff);
+      box-shadow: 0 0 14px rgba(255, 42, 133, 0.8), 0 0 28px rgba(245, 208, 118, 0.4);
+      animation: spinOrb 6s linear infinite;
+    }
+
+    @keyframes spinOrb {
+      to { transform: rotate(360deg); }
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 1rem;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      font-size: 0.72rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-1);
+      box-shadow: 0 0 10px var(--accent-1);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* =========================================
+       HERO SECTION (SWAP THIS SECTION LATER)
+       ========================================= */
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin: auto 0;
+      padding: 4rem 0;
+    }
+
+    .eyebrow {
+      font-size: 0.75rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--accent-3);
+      margin-bottom: 1.5rem;
+      opacity: 0.9;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2.8rem, 8.5vw, 7.2rem);
+      line-height: 0.95;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+      max-width: 15ch;
+      margin-bottom: 1.75rem;
+      background: linear-gradient(
+        115deg,
+        #ffffff 15%,
+        #f5d076 38%,
+        #ff2a85 60%,
+        #b86bff 80%,
+        #ffffff 95%
+      );
+      background-size: 220% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: chromeShimmer 7s linear infinite;
+    }
+
+    @keyframes chromeShimmer {
+      to { background-position: 220% center; }
+    }
+
+    .subtitle {
+      font-size: clamp(1rem, 1.5vw, 1.15rem);
+      font-weight: 300;
+      line-height: 1.7;
+      color: var(--muted);
+      max-width: 48ch;
+      margin-bottom: 2.75rem;
+    }
+
+    /* =========================================
+       VIP ACCESS FORM
+       ========================================= */
+    .notify-box {
+      width: 100%;
+      max-width: 460px;
+      position: relative;
+    }
+
+    .notify-form {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.4rem;
+      backdrop-filter: blur(16px);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .notify-form:focus-within {
+      border-color: rgba(255, 42, 133, 0.65);
+      box-shadow: 0 0 35px rgba(255, 42, 133, 0.2), inset 0 0 12px rgba(255, 255, 255, 0.04);
+    }
+
+    .notify-form input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 0.92rem;
+      padding: 0.85rem 1.25rem;
+      font-family: inherit;
+    }
+
+    .notify-form input::placeholder {
+      color: #636370;
+    }
+
+    .notify-form button {
+      background: linear-gradient(135deg, #fff 0%, #f5d076 50%, #ff2a85 100%);
+      background-size: 200% auto;
+      color: #050507;
+      border: none;
+      border-radius: 999px;
+      padding: 0.85rem 1.65rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.2s ease, background-position 0.4s ease, box-shadow 0.3s ease;
+    }
+
+    .notify-form button:hover {
+      background-position: right center;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(255, 42, 133, 0.45);
+    }
+
+    .form-feedback {
+      margin-top: 1rem;
+      font-size: 0.82rem;
+      letter-spacing: 0.06em;
+      color: var(--accent-3);
+      min-height: 1.2em;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: all 0.3s ease;
+    }
+
+    .form-feedback.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* =========================================
+       FOOTER
+       ========================================= */
+    footer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    .socials {
+      display: flex;
+      gap: 1.75rem;
+    }
+
+    .socials a {
+      color: var(--muted);
+      text-decoration: none;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.16em;
+      transition: color 0.25s ease, text-shadow 0.25s ease;
+    }
+
+    .socials a:hover {
+      color: #fff;
+      text-shadow: 0 0 12px rgba(255, 42, 133, 0.8);
+    }
+
+    @media (max-width: 600px) {
+      .notify-form {
+        flex-direction: column;
+        border-radius: 20px;
+        padding: 0.5rem;
+        gap: 0.4rem;
+      }
+      .notify-form input,
+      .notify-form button {
+        width: 100%;
+        text-align: center;
+      }
+      footer {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Disco Mirror Reflections & Ambient Spotlight -->
+  <canvas id="disco-canvas"></canvas>
+  <div class="spotlight-overlay" id="spotlight"></div>
+  <div class="noise"></div>
+
+  <div class="wrapper">
+    <!-- TOP BAR -->
+    <header>
+      <a href="#" class="brand">
+        <span class="disco-orb"></span>
+        <span>YOUR BRAND</span>
+      </a>
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        <span>Private Preview</span>
+      </div>
+    </header>
+
+    <!-- MAIN LANDING CONTENT (Replace or expand here when your full site is ready) -->
+    <main id="site-content">
+      <p class="eyebrow">After Hours &bull; 2026</p>
+      <h1>Something Electric Is Coming.</h1>
+      <p class="subtitle">
+        Curated nightlife, bold design, and unforgettable experiences—currently behind closed doors. Get on the list before the lights come on.
+      </p>
+
+      <div class="notify-box">
+        <form class="notify-form" id="notifyForm">
+          <input
+            type="email"
+            id="emailInput"
+            placeholder="Enter your email for VIP access..."
+            required
+            autocomplete="email"
+          />
+          <button type="submit">Get Access</button>
+        </form>
+        <p class="form-feedback" id="formFeedback"></p>
+      </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+      <span>&copy; 2026 YOUR BRAND. ALL RIGHTS RESERVED.</span>
+      <nav class="socials" aria-label="Social Links">
+        <a href="#">Instagram</a>
+        <a href="#">TikTok</a>
+        <a href="#">Contact</a>
+      </nav>
+    </footer>
+  </div>
+
+  <script>
+    // 1. Mouse-tracking velvet disco spotlight
+    const spotlight = document.getElementById('spotlight');
+    window.addEventListener('mousemove', (e) => {
+      spotlight.style.setProperty('--mouse-x', `${e.clientX}px`);
+      spotlight.style.setProperty('--mouse-y', `${e.clientY}px`);
+    });
+
+    // 2. Subtle floating disco-ball light motes on pure black canvas
+    const canvas = document.getElementById('disco-canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height, motes;
+
+    const palette = [
+      'rgba(255, 255, 255,',
+      'rgba(245, 208, 118,',
+      'rgba(255, 42, 133,',
+      'rgba(168, 85, 247,'
+    ];
+
+    function initCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      const count = Math.min(75, Math.floor((width * height) / 18000));
+
+      motes = Array.from({ length: count }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        size: Math.random() * 2.4 + 0.8,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        phase: Math.random() * Math.PI * 2,
+        speed: Math.random() * 0.03 + 0.01,
+        color: palette[Math.floor(Math.random() * palette.length)]
+      }));
+    }
+
+    function animateMotes() {
+      ctx.clearRect(0, 0, width, height);
+
+      for (const m of motes) {
+        m.x += m.vx;
+        m.y += m.vy;
+        m.phase += m.speed;
+
+        if (m.x < 0) m.x = width;
+        if (m.x > width) m.x = 0;
+        if (m.y < 0) m.y = height;
+        if (m.y > height) m.y = 0;
+
+        // Sharp sparkle glint like a mirror tile catching light
+        const glint = Math.pow(Math.max(0, Math.sin(m.phase)), 4);
+        const alpha = 0.08 + glint * 0.75;
+
+        ctx.save();
+        ctx.translate(m.x, m.y);
+        ctx.rotate(m.phase * 0.4);
+        ctx.fillStyle = `${m.color} ${alpha.toFixed(3)})`;
+        ctx.shadowBlur = glint * 14;
+        ctx.shadowColor = `${m.color} 0.9)`;
+        ctx.fillRect(-m.size / 2, -m.size / 2, m.size, m.size);
+        ctx.restore();
+      }
+
+      requestAnimationFrame(animateMotes);
+    }
+
+    window.addEventListener('resize', initCanvas);
+    initCanvas();
+    animateMotes();
+
+    // 3. VIP Email Form Handler (Hook up your backend/Mailchimp/Formspree endpoint here later)
+    const form = document.getElementById('notifyForm');
+    const emailInput = document.getElementById('emailInput');
+    const feedback = document.getElementById('formFeedback');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      if (!email) return;
+
+      feedback.textContent = `You're on the velvet list (${email}). We'll be in touch.`;
+      feedback.classList.add('visible');
+      emailInput.value = '';
