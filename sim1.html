@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Respiratory System & Lungs Simulator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* Custom Color Palette & Base Variables */
+        :root {
+            --bg-dark: #070408;
+            --accent-crimson: #9e0606;
+            --accent-cyan: #00b6f2;
+            --neutral-slate: #756a75;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Glassmorphism Panels */
+        .glass-panel {
+            background: rgba(18, 13, 20, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(117, 106, 117, 0.3);
+        }
+
+        /* Interactive SVG Part Styling */
+        .lung-part {
+            cursor: pointer;
+            transition: filter 0.25s ease, stroke 0.25s ease, stroke-width 0.25s ease, opacity 0.25s ease;
+        }
+
+        .lung-part:hover {
+            filter: drop-shadow(0 0 12px rgba(0, 182, 242, 0.8));
+            stroke: #00b6f2;
+            stroke-width: 2.5px;
+        }
+
+        .lung-part.selected {
+            filter: drop-shadow(0 0 16px rgba(0, 182, 242, 1));
+            stroke: #00b6f2;
+            stroke-width: 3px;
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #00b6f2;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(0, 182, 242, 0.7);
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: rgba(117, 106, 117, 0.4);
+            border-radius: 999px;
+        }
+
+        /* Subtle Grid Background */
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(117, 106, 117, 0.08) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(117, 106, 117, 0.08) 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="bg-grid min-h-screen flex flex-col justify-between selection:bg-[#00b6f2] selection:text-[#070408]">
+
+    <!-- Top Navigation / Header -->
+    <header class="w-full border-b border-[#756a75]/30 bg-[#070408]/90 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full bg-[#00b6f2] animate-pulse shadow-[0_0_10px_#00b6f2]"></div>
+                <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                    AERO<span class="text-[#00b6f2]">PULSE</span> <span class="text-[#756a75] font-normal text-sm sm:text-base ml-1">| Interactive Respiratory Simulator</span>
+                </h1>
+            </div>
+            
+            <!-- Live Telemetry Pill -->
+            <div class="flex items-center gap-4 text-xs sm:text-sm font-mono bg-[#756a75]/10 px-4 py-2 rounded-full border border-[#756a75]/30">
+                <div class="flex items-center gap-2">
+                    <span class="text-[#756a75]">PHASE:</span>
+                    <span id="phase-indicator" class="font-semibold text-[#00b6f2] uppercase">INHALE</span>
+                </div>
+                <span class="text-[#756a75]/50">|</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-[#756a75]">O₂ SAT:</span>
+                    <span id="o2-indicator" class="font-semibold text-white">98.4%</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Interactive Workspace -->
+    <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Left Column: Interactive Anatomical Canvas (7 cols on desktop) -->
+        <div class="lg:col-span-7 glass-panel rounded-2xl p-4 sm:p-6 relative flex flex-col items-center justify-center min-h-[520px] sm:min-h-[600px] shadow-2xl overflow-hidden">
+            
+            <!-- Instruction Badge -->
+            <div class="absolute top-4 left-4 z-10 flex items-center gap-2 bg-[#070408]/80 border border-[#756a75]/40 px-3 py-1.5 rounded-lg text-xs text-gray-300">
+                <svg class="w-4 h-4 text-[#00b6f2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                <span>Click any anatomical structure to inspect</span>
+            </div>
+
+            <!-- X-Ray / View Toggle -->
+            <button id="toggle-xray" class="absolute top-4 right-4 z-10 bg-[#756a75]/20 hover:bg-[#00b6f2]/20 text-gray-200 hover:text-[#00b6f2] border border-[#756a75]/40 hover:border-[#00b6f2] px-3 py-1.5 rounded-lg text-xs font-medium transition-all">
+                X-Ray Overlay: <span id="xray-status" class="font-bold text-[#00b6f2]">ON</span>
+            </button>
+
+            <!-- Interactive SVG Anatomical Lungs -->
+            <div class="w-full max-w-[480px] aspect-[4/5] flex items-center justify-center my-4">
+                <svg id="lungs-svg" viewBox="0 0 500 560" class="w-full h-full overflow-visible">
+                    <defs>
+                        <!-- Crimson Tissue Gradient -->
+                        <radialGradient id="lungTissueGrad" cx="50%" cy="45%" r="55%">
+                            <stop offset="0%" stop-color="#c40b0b" stop-opacity="0.9"/>
+                            <stop offset="65%" stop-color="#9e0606" stop-opacity="0.92"/>
+                            <stop offset="100%" stop-color="#520202" stop-opacity="0.95"/>
+                        </radialGradient>
+
+                        <!-- Cyan Oxygen Glow -->
+                        <filter id="cyanGlow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="4" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+
+                        <!-- Airway Gradient -->
+                        <linearGradient id="airwayGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#756a75"/>
+                            <stop offset="50%" stop-color="#9c8f9c"/>
+                            <stop offset="100%" stop-color="#00b6f2"/>
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Subtle Thoracic Cage Silhouette (Background Reference) -->
+                    <g id="ribcage-ref" opacity="0.22" stroke="#756a75" stroke-width="2" fill="none">
+                        <path d="M 180 140 C 90 150, 50 260, 75 390" stroke-dasharray="6 4"/>
+                        <path d="M 320 140 C 410 150, 450 260, 425 390" stroke-dasharray="6 4"/>
+                        <path d="M 150 180 C 80 195, 65 250, 90 310" />
+                        <path d="M 350 180 C 420 195, 435 250, 410 310" />
+                        <path d="M 135 230 C 75 245, 65 300, 95 355" />
+                        <path d="M 365 230 C 425 245, 435 300, 405 355" />
+                    </g>
+
+                    <!-- Dynamic Expanding Lungs Group -->
+                    <g id="breathing-lungs-group" transform="translate(250, 270) scale(1) translate(-250, -270)">
+                        
+                        <!-- RIGHT LUNG (Viewer's Left - 3 Lobes) -->
+                        <g id="right-lung-group">
+                            <!-- Right Superior Lobe -->
+                            <path id="part-right-superior" data-part="rightSuperior" class="lung-part"
+                                d="M 222 135 C 185 135, 130 175, 108 245 C 145 255, 188 242, 222 225 Z"
+                                fill="url(#lungTissueGrad)" stroke="#756a75" stroke-width="1.5" />
+                            
+                            <!-- Right Middle Lobe -->
+                            <path id="part-right-middle" data-part="rightMiddle" class="lung-part"
+                                d="M 108 245 C 95 285, 92 325, 98 355 C 145 345, 190 325, 222 300 L 222 225 C 188 242, 145 255, 108 245 Z"
+                                fill="url(#lungTissueGrad)" stroke="#756a75" stroke-width="1.5" />
+                            
+                            <!-- Right Inferior Lobe -->
+                            <path id="part-right-inferior" data-part="rightInferior" class="lung-part"
+                                d="M 98 355 C 102 390, 115 415, 135 418 C 170 422, 205 402, 224 392 L 222 300 C 190 325, 145 345, 98 355 Z"
+                                fill="url(#lungTissueGrad)" stroke="#756a75" stroke-width="1.5" />
+                        </g>
+
+                        <!-- LEFT LUNG (Viewer's Right - 2 Lobes + Cardiac Notch) -->
+                        <g id="left-lung-group">
+                            <!-- Left Superior Lobe (with Cardiac Notch) -->
+                            <path id="part-left-superior" data-part="leftSuperior" class="lung-part"
+                                d="M 278 135 C 315 135, 370 175, 392 255 C 350 280, 315 305, 282 325 C 296 298, 294 268, 278 252 Z"
+                                fill="url(#lungTissueGrad)" stroke="#756a75" stroke-width="1.5" />
+                            
+                            <!-- Left Inferior Lobe -->
+                            <path id="part-left-inferior" data-part="leftInferior" class="lung-part"
+                                d="M 392 255 C 405 310, 402 385, 365 418 C 330 422, 295 402, 276 392 C 276 365, 278 345, 282 325 C 315 305, 350 280, 392 255 Z"
+                                fill="url(#lungTissueGrad)" stroke="#756a75" stroke-width="1.5" />
+                        </g>
+
+                        <!-- X-RAY INTERNAL AIRWAYS (Bronchi, Bronchioles & Alveoli) -->
+                        <g id="internal-airways" opacity="0.9">
+                            <!-- Left & Right Primary Bronchi -->
+                            <path id="part-bronchi" data-part="bronchi" class="lung-part"
+                                d="M 250 165 L 210 205 M 250 165 L 290 205"
+                                stroke="#00b6f2" stroke-width="9" stroke-linecap="round" fill="none" />
+
+                            <!-- Secondary & Tertiary Bronchioles -->
+                            <g id="part-bronchioles" data-part="bronchioles" class="lung-part" stroke="#00b6f2" stroke-linecap="round" fill="none">
+                                <!-- Right Lung Branches -->
+                                <path d="M 210 205 L 175 185 M 175 185 L 155 170 M 175 185 L 150 200" stroke-width="4.5"/>
+                                <path d="M 210 205 L 165 235 M 165 235 L 135 230 M 165 235 L 140 265" stroke-width="4.5"/>
+                                <path d="M 210 205 L 185 285 M 185 285 L 145 315 M 185 285 L 175 355 M 175 355 L 145 380 M 175 355 L 195 385" stroke-width="4.5"/>
+                                
+                                <!-- Left Lung Branches -->
+                                <path d="M 290 205 L 325 185 M 325 185 L 345 170 M 325 185 L 350 200" stroke-width="4.5"/>
+                                <path d="M 290 205 L 335 240 M 335 240 L 365 235 M 335 240 L 360 270" stroke-width="4.5"/>
+                                <path d="M 290 205 L 320 295 M 320 295 L 355 325 M 320 295 L 325 360 M 325 360 L 355 385 M 325 360 L 305 385" stroke-width="4.5"/>
+                            </g>
+
+                            <!-- Alveolar Sacs (Glowing Oxygen Nodes) -->
+                            <g id="part-alveoli" data-part="alveoli" class="lung-part" fill="#00b6f2" filter="url(#cyanGlow)">
+                                <!-- Right Alveoli Clusters -->
+                                <circle cx="152" cy="168" r="5" />
+                                <circle cx="146" cy="201" r="5" />
+                                <circle cx="132" cy="229" r="5.5" />
+                                <circle cx="137" cy="267" r="5" />
+                                <circle cx="142" cy="317" r="5.5" />
+                                <circle cx="142" cy="382" r="5" />
+                                <circle cx="196" cy="388" r="5" />
+
+                                <!-- Left Alveoli Clusters -->
+                                <circle cx="348" cy="168" r="5" />
+                                <circle cx="354" cy="201" r="5" />
+                                <circle cx="368" cy="234" r="5.5" />
+                                <circle cx="363" cy="272" r="5" />
+                                <circle cx="358" cy="327" r="5.5" />
+                                <circle cx="358" cy="387" r="5" />
+                                <circle cx="304" cy="388" r="5" />
+                            </g>
+                        </g>
+                    </g>
+
+                    <!-- UPPER AIRWAY: Larynx & Trachea (Fixed Position, Subtle Pulse) -->
+                    <g id="upper-airway">
+                        <!-- Larynx (Voice Box) -->
+                        <path id="part-larynx" data-part="larynx" class="lung-part"
+                            d="M 232 25 L 268 25 L 264 58 L 236 58 Z"
+                            rx="6" fill="#756a75" stroke="#00b6f2" stroke-width="1.5" />
+                        <path d="M 236 36 L 264 36 M 237 47 L 263 47" stroke="#070408" stroke-width="2" pointer-events="none"/>
+
+                        <!-- Trachea (Windpipe with Cartilage Rings) -->
+                        <g id="part-trachea" data-part="trachea" class="lung-part">
+                            <rect x="239" y="58" width="22" height="112" rx="6" fill="#756a75" stroke="#9c8f9c" stroke-width="1.5" />
+                            <!-- Cartilage Rings -->
+                            <line x1="241" y1="70" x2="259" y2="70" stroke="#070408" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="241" y1="84" x2="259" y2="84" stroke="#070408" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="241" y1="98" x2="259" y2="98" stroke="#070408" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="241" y1="112" x2="259" y2="112" stroke="#070408" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="241" y1="126" x2="259" y2="126" stroke="#070408" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="241" y1="140" x2="259" y2="140" stroke="#070408" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="241" y1="154" x2="259" y2="154" stroke="#070408" stroke-width="2.5" stroke-linecap="round"/>
+                        </g>
+                    </g>
+
+                    <!-- Animated Airflow Particles Layer -->
+                    <g id="airflow-particles" pointer-events="none"></g>
+
+                    <!-- DIAPHRAGM MUSCLE (Contracts Downward on Inhale, Relaxes Upward on Exhale) -->
+                    <path id="part-diaphragm" data-part="diaphragm" class="lung-part"
+                        d="M 85 455 Q 250 385 415 455 Q 250 425 85 455 Z"
+                        fill="#9e0606" stroke="#00b6f2" stroke-width="1.5" />
+                </svg>
+            </div>
+
+            <!-- Quick Part Selector Pills (Mobile & Accessibility Friendly) -->
+            <div class="w-full pt-3 border-t border-[#756a75]/20 flex flex-wrap justify-center gap-1.5">
+                <button data-select="trachea" class="part-pill text-xs px-2.5 py-1 rounded-md bg-[#756a75]/20 hover:bg-[#00b6f2]/20 text-gray-300 hover:text-[#00b6f2] border border-[#756a75]/30 transition">Trachea</button>
+                <button data-select="bronchi" class="part-pill text-xs px-2.5 py-1 rounded-md bg-[#756a75]/20 hover:bg-[#00b6f2]/20 text-gray-300 hover:text-[#00b6f2] border border-[#756a75]/30 transition">Bronchi</button>
+                <button data-select="alveoli" class="part-pill text-xs px-2.5 py-1 rounded-md bg-[#756a75]/20 hover:bg-[#00b6f2]/20 text-gray-300 hover:text-[#00b6f2] border border-[#756a75]/30 transition">Alveoli</button>
+                <button data-select="rightSuperior" class="part-pill text-xs px-2.5 py-1 rounded-md bg-[#756a75]/20 hover:bg-[#00b6f2]/20 text-gray-300 hover:text-[#00b6f2] border border-[#756a75]/30 transition">Right Lung</button>
+                <button data-select="leftSuperior" class="part-pill text-xs px-2.5 py-1 rounded-md bg-[#756a75]/20 hover:bg-[#00b6f2]/20 text-gray-300 hover:text-[#00b6f2] border border-[#756a75]/30 transition">Left Lung</button>
+                <button data-select="diaphragm" class="part-pill text-xs px-2.5 py-1 rounded-md bg-[#756a75]/20 hover:bg-[#00b6f2]/20 text-gray-300 hover:text-[#00b6f2] border border-[#756a75]/30 transition">Diaphragm</button>
+            </div>
+        </div>
+
+        <!-- Right Column: Controls & Anatomical Inspector (5 cols on desktop) -->
+        <div class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- Simulation Controls Card -->
+            <div class="glass-panel rounded-2xl p-5 sm:p-6 shadow-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-[#756a75]">Physiology Controls</h2>
+                    <button id="play-pause-btn" class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#00b6f2] text-[#070408] font-semibold text-xs hover:bg-[#00b6f2]/90 transition shadow-[0_0_12px_rgba(0,182,242,0.4)]">
+                        <span id="play-pause-icon">❚❚</span>
+                        <span id="play-pause-text">Pause</span>
+                    </button>
+                </div>
+
+                <!-- Activity Presets -->
+                <div class="grid grid-cols-3 gap-2 mb-5">
+                    <button data-bpm="12" data-depth="0.06" class="preset-btn active-preset py-2 px-3 rounded-xl border border-[#00b6f2] bg-[#00b6f2]/15 text-white text-xs font-medium transition">
+                        Resting<br><span class="text-[10px] text-[#00b6f2] font-mono">12 BPM</span>
+                    </button>
+                    <button data-bpm="22" data-depth="0.09" class="preset-btn py-2 px-3 rounded-xl border border-[#756a75]/30 bg-[#756a75]/10 hover:border-[#756a75] text-gray-300 text-xs font-medium transition">
+                        Brisk Walk<br><span class="text-[10px] text-[#756a75] font-mono">22 BPM</span>
+                    </button>
+                    <button data-bpm="38" data-depth="0.13" class="preset-btn py-2 px-3 rounded-xl border border-[#756a75]/30 bg-[#756a75]/10 hover:border-[#9e0606] text-gray-300 text-xs font-medium transition">
+                        Sprint<br><span class="text-[10px] text-[#9e0606] font-mono">38 BPM</span>
+                    </button>
+                </div>
+
+                <!-- Breathing Rate Slider -->
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs mb-1.5">
+                        <span class="text-gray-300 font-medium">Respiratory Rate</span>
+                        <span class="font-mono text-[#00b6f2] font-semibold"><span id="bpm-val">12</span> breaths/min</span>
+                    </div>
+                    <input id="bpm-slider" type="range" min="6" max="45" value="12" class="w-full">
+                </div>
+
+                <!-- Tidal Volume / Depth Slider -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1.5">
+                        <span class="text-gray-300 font-medium">Tidal Volume (Lung Expansion)</span>
+                        <span class="font-mono text-[#00b6f2] font-semibold"><span id="volume-val">500</span> mL</span>
+                    </div>
+                    <input id="volume-slider" type="range" min="300" max="1200" step="50" value="500" class="w-full">
+                </div>
+            </div>
+
+            <!-- Anatomical Part Inspector Card -->
+            <div class="glass-panel rounded-2xl p-5 sm:p-6 shadow-xl border-t-2 border-t-[#00b6f2] flex-grow">
+                <div class="flex items-start justify-between gap-2 mb-3">
+                    <div>
+                        <span id="inspector-category" class="inline-block text-[11px] font-mono uppercase tracking-widest px-2 py-0.5 rounded bg-[#9e0606]/30 text-[#ff6b6b] border border-[#9e0606] mb-1.5">
+                            Conducting Zone
+                        </span>
+                        <h3 id="inspector-title" class="text-xl sm:text-2xl font-bold text-white">
+                            Trachea (Windpipe)
+                        </h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-[#00b6f2]/10 border border-[#00b6f2]/30 flex items-center justify-center text-[#00b6f2] shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                </div>
+
+                <p id="inspector-desc" class="text-sm text-gray-300 leading-relaxed mb-5">
+                    A wide, hollow tube reinforced with 16–20 C-shaped rings of hyaline cartilage that prevent it from collapsing. It connects the larynx to the primary bronchi, filtering, warming, and humidifying inhaled air.
+                </p>
+
+                <!-- Key Physiological Metrics Grid -->
+                <div class="grid grid-cols-2 gap-3 pt-4 border-t border-[#756a75]/25">
+                    <div class="bg-[#070408]/60 p-3 rounded-xl border border-[#756a75]/20">
+                        <div class="text-[11px] text-[#756a75] uppercase font-mono">Primary Function</div>
+                        <div id="inspector-function" class="text-xs sm:text-sm font-semibold text-white mt-0.5">Air Conduction & Filtration</div>
+                    </div>
+                    <div class="bg-[#070408]/60 p-3 rounded-xl border border-[#756a75]/20">
+                        <div class="text-[11px] text-[#756a75] uppercase font-mono">Key Feature</div>
+                        <div id="inspector-feature" class="text-xs sm:text-sm font-semibold text-[#00b6f2] mt-0.5">C-Shaped Cartilage Rings</div>
+                    </div>
+                </div>
+
+                <!-- Clinical Note -->
+                <div class="mt-4 p-3 rounded-xl bg-[#9e0606]/15 border border-[#9e0606]/40 flex items-start gap-2.5">
+                    <div class="w-2 h-2 rounded-full bg-[#9e0606] mt-1.5 shrink-0"></div>
+                    <p id="inspector-fact" class="text-xs text-gray-300 leading-relaxed">
+                        <strong class="text-white">Did you know?</strong> Microscopic hair-like structures called cilia line the trachea and sweep mucus and trapped dust upward at ~1.5 cm per minute.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full border-t border-[#756a75]/20 py-4 text-center text-xs text-[#756a75]">
+        Interactive Human Respiratory System Simulator &bull; Click any anatomical region to explore physiology
+    </footer>
+
+    <!-- Simulation & Interactivity Engine -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Comprehensive Anatomical Database
+            const anatomyData = {
+                larynx: {
+                    title: "Larynx (Voice Box)",
+                    category: "Upper Airway",
+                    desc: "Situated between the pharynx and the trachea, the larynx houses the vocal folds (vocal cords). It acts as a critical sphincter that prevents food and liquid from entering the lower respiratory tract during swallowing.",
+                    func: "Phonation & Airway Protection",
+                    feature: "Epiglottis & Vocal Cords",
+                    fact: "Air passing through vibrating vocal folds creates sound waves, while tongue and lip movements shape those waves into speech."
+                },
+                trachea: {
+                    title: "Trachea (Windpipe)",
+                    category: "Conducting Zone",
+                    desc: "A wide, hollow tube reinforced with 16–20 C-shaped rings of hyaline cartilage that prevent it from collapsing. It connects the larynx to the primary bronchi, filtering, warming, and humidifying inhaled air.",
+                    func: "Air Conduction & Filtration",
+                    feature: "C-Shaped Cartilage Rings",
+                    fact: "Microscopic hair-like structures called cilia line the trachea and sweep mucus and trapped dust upward at ~1.5 cm per minute."
+                },
+                bronchi: {
+                    title: "Primary Bronchi",
+                    category: "Conducting Zone",
+                    desc: "At the carina, the trachea bifurcates into the left and right primary bronchi. The right main bronchus is wider, shorter, and more vertical than the left, leading directly into the right lung.",
+                    func: "Bilateral Air Distribution",
+                    feature: "Carina Bifurcation Ridge",
+                    fact: "Because the right primary bronchus is steeper and wider, accidentally inhaled small objects are statistically more likely to lodge in the right lung."
+                },
+                bronchioles: {
+                    title: "Bronchioles",
+                    category: "Transitional Zone",
+                    desc: "Sub-millimeter airways branching off the secondary and tertiary bronchi. Unlike bronchi, bronchioles lack cartilage and rely on smooth muscle rings to regulate airflow resistance through bronchodilation and bronchoconstriction.",
+                    func: "Airflow Resistance Control",
+                    feature: "Smooth Muscle Walls",
+                    fact: "During exercise, sympathetic nervous stimulation relaxes bronchiole smooth muscle, widening airways to maximize oxygen intake."
+                },
+                alveoli: {
+                    title: "Alveolar Sacs (Alveoli)",
+                    category: "Respiratory Zone",
+                    desc: "Microscopic, grape-like clusters of air sacs at the terminal ends of respiratory bronchioles. Surrounded by dense capillary networks, their ultra-thin membranes allow rapid diffusion of O₂ into the blood and CO₂ out.",
+                    func: "O₂ / CO₂ Gas Exchange",
+                    feature: "~480 Million Micro-Sacs",
+                    fact: "If spread out flat, the combined surface area of all alveoli in human lungs would cover roughly half a tennis court (~70 square meters)."
+                },
+                rightSuperior: {
+                    title: "Right Superior Lobe",
+                    category: "Right Lung (3 Lobes)",
+                    desc: "The uppermost section of the right lung, separated from the middle lobe by the horizontal fissure. It receives oxygenated air via the right superior lobar bronchus.",
+                    func: "Apical Gas Exchange",
+                    feature: "Horizontal Fissure Boundary",
+                    fact: "The right lung is slightly shorter than the left lung to accommodate the liver sitting just beneath the right dome of the diaphragm."
+                },
+                rightMiddle: {
+                    title: "Right Middle Lobe",
+                    category: "Right Lung (3 Lobes)",
+                    desc: "A wedge-shaped lobe unique to the right lung, bounded above by the horizontal fissure and below by the oblique fissure. It is the smallest of the three right lobes.",
+                    func: "Central Pulmonary Ventilation",
+                    feature: "Unique to Right Lung",
+                    fact: "The right lung accounts for approximately 55% of total respiratory gas exchange capacity due to its larger overall volume."
+                },
+                rightInferior: {
+                    title: "Right Inferior Lobe",
+                    category: "Right Lung (3 Lobes)",
+                    desc: "The largest lobe of the right lung, resting directly on the convex upper surface of the right diaphragm dome. It expands significantly downward during deep diaphragmatic breathing.",
+                    func: "Basal Deep Ventilation",
+                    feature: "Diaphragmatic Base",
+                    fact: "Gravity draws slightly more blood flow to the inferior lobes when standing upright, making them prime sites for efficient gas exchange."
+                },
+                leftSuperior: {
+                    title: "Left Superior Lobe",
+                    category: "Left Lung (2 Lobes)",
+                    desc: "The upper lobe of the left lung. Its anterior border features the prominent cardiac notch—an indentation that creates space for the apex of the heart.",
+                    func: "Upper Left Ventilation",
+                    feature: "Cardiac Notch & Lingula",
+                    fact: "The small tongue-like projection at the bottom of the left superior lobe is called the lingula, which is the anatomical equivalent of the right middle lobe."
+                },
+                leftInferior: {
+                    title: "Left Inferior Lobe",
+                    category: "Left Lung (2 Lobes)",
+                    desc: "Separated from the left superior lobe by a deep oblique fissure, this large basal lobe handles the majority of ventilation on the left side of the thoracic cavity.",
+                    func: "Basal Left Gas Exchange",
+                    feature: "Oblique Fissure Separation",
+                    fact: "During inhalation, the oblique fissure allows the superior and inferior lobes to glide smoothly against one another without friction."
+                },
+                diaphragm: {
+                    title: "Thoracic Diaphragm",
+                    category: "Primary Respiratory Muscle",
+                    desc: "A large, dome-shaped skeletal muscle separating the thoracic cavity from the abdominal cavity. When it contracts, it flattens downward, creating negative pressure that draws air into the lungs.",
+                    func: "Negative-Pressure Generation",
+                    feature: "Phrenic Nerve Innervation",
+                    fact: "The diaphragm performs roughly 75–80% of the mechanical work of breathing during quiet rest."
+                }
+            };
+
+            // State Variables
+            let isPlaying = true;
+            let bpm = 12;
+            let expansionFactor = 0.06; // Scale delta
+            let breathPhase = 0; // Radians
+            let lastTimestamp = null;
+            let xrayOn = true;
+            let currentSelectedKey = 'trachea';
+
+            // DOM Elements
+            const lungsGroup = document.getElementById('breathing-lungs-group');
+            const diaphragmPath = document.getElementById('part-diaphragm');
+            const phaseIndicator = document.getElementById('phase-indicator');
+            const o2Indicator = document.getElementById('o2-indicator');
+            const bpmSlider = document.getElementById('bpm-slider');
+            const bpmVal = document.getElementById('bpm-val');
+            const volumeSlider = document.getElementById('volume-slider');
+            const volumeVal = document.getElementById('volume-val');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const playPauseIcon = document.getElementById('play-pause-icon');
+            const playPauseText = document.getElementById('play-pause-text');
+            const toggleXrayBtn = document.getElementById('toggle-xray');
+            const xrayStatus = document.getElementById('xray-status');
+            const internalAirways = document.getElementById('internal-airways');
+            const particlesGroup = document.getElementById('airflow-particles');
+
+            // Inspector DOM Elements
+            const inspCategory = document.getElementById('inspector-category');
+            const inspTitle = document.getElementById('inspector-title');
+            const inspDesc = document.getElementById('inspector-desc');
+            const inspFunction = document.getElementById('inspector-function');
+            const inspFeature = document.getElementById('inspector-feature');
+            const inspFact = document.getElementById('inspector-fact');
+
+            // Select Anatomical Part Handler
+            function selectPart(partKey) {
+                const data = anatomyData[partKey];
+                if (!data) return;
+
+                currentSelectedKey = partKey;
+
+                // Update SVG Highlight Classes
+                document.querySelectorAll('.lung-part').forEach(el => {
+                    el.classList.remove('selected');
+                    if (el.dataset.part === partKey) {
+                        el.classList.add('selected');
+                    }
+                });
+
+                // Update Pill Highlight
+                document.querySelectorAll('.part-pill').forEach(btn => {
+                    if (btn.dataset.select === partKey) {
+                        btn.classList.add('border-[#00b6f2]', 'text-[#00b6f2]', 'bg-[#00b6f2]/20');
+                    } else {
+                        btn.classList.remove('border-[#00b6f2]', 'text-[#00b6f2]', 'bg-[#00b6f2]/20');
+                    }
+                });
+
+                // Populate Inspector Card
+                inspCategory.textContent = data.category;
+                inspTitle.textContent = data.title;
+                inspDesc.textContent = data.desc;
+                inspFunction.textContent = data.func;
+                inspFeature.textContent = data.feature;
+                inspFact.innerHTML = `<strong class="text-white">Did you know?</strong> ${data.fact}`;
+            }
+
+            // Attach Click Listeners to SVG Parts
+            document.querySelectorAll('.lung-part').forEach(part => {
+                part.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectPart(part.dataset.part);
+                });
+            });
+
+            // Attach Click Listeners to Quick Pills
+            document.querySelectorAll('.part-pill').forEach(pill => {
+                pill.addEventListener('click', () => {
+                    selectPart(pill.dataset.select);
+                });
+            });
+
+            // Initialize Default Selection
+            selectPart('trachea');
+
+            // X-Ray Overlay Toggle
+            toggleXrayBtn.addEventListener('click', () => {
+                xrayOn = !xrayOn;
+                internalAirways.style.opacity = xrayOn ? '0.9' : '0.15';
+                xrayStatus.textContent = xrayOn ? 'ON' : 'OFF';
+                xrayStatus.style.color = xrayOn ? '#00b6f2' : '#756a75';
+            });
+
+            // Play / Pause Toggle
+            playPauseBtn.addEventListener('click', () => {
+                isPlaying = !isPlaying;
+                playPauseIcon.textContent = isPlaying ? '❚❚' : '▶';
+                playPauseText.textContent = isPlaying ? 'Pause' : 'Resume';
+                if (isPlaying) {
+                    lastTimestamp = performance.now();
+                    requestAnimationFrame(animateBreathing);
+                }
+            });
+
+            // BPM Slider Listener
+            bpmSlider.addEventListener('input', (e) => {
+                bpm = parseInt(e.target.value, 10);
+                bpmVal.textContent = bpm;
+                clearPresetHighlights();
+            });
+
+            // Volume Slider Listener
+            volumeSlider.addEventListener('input', (e) => {
+                const vol = parseInt(e.target.value, 10);
+                volumeVal.textContent = vol;
+                // Map 300-1200 mL to 0.04 - 0.14 scale expansion
+                expansionFactor = 0.04 + ((vol - 300) / 900) * 0.10;
+                clearPresetHighlights();
+            });
+
+            // Preset Buttons
+            function clearPresetHighlights() {
+                document.querySelectorAll('.preset-btn').forEach(btn => {
+                    btn.classList.remove('border-[#00b6f2]', 'bg-[#00b6f2]/15', 'text-white');
+                    btn.classList.add('border-[#756a75]/30', 'bg-[#756a75]/10', 'text-gray-300');
+                });
+            }
+
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    clearPresetHighlights();
+                    btn.classList.remove('border-[#756a75]/30', 'bg-[#756a75]/10', 'text-gray-300');
+                    btn.classList.add('border-[#00b6f2]', 'bg-[#00b6f2]/15', 'text-white');
+
+                    bpm = parseInt(btn.dataset.bpm, 10);
+                    expansionFactor = parseFloat(btn.dataset.depth);
+
+                    bpmSlider.value = bpm;
+                    bpmVal.textContent = bpm;
+
+                    const approxVol = Math.round(300 + ((expansionFactor - 0.04) / 0.10) * 900);
+                    volumeSlider.value = approxVol;
+                    volumeVal.textContent = approxVol;
+                });
+            });
+
+            // Airflow Particle System (Cyan Oxygen Molecules during Inhale, Crimson CO2 during Exhale)
+            const particles = [];
+            const numParticles = 14;
+            for (let i = 0; i < numParticles; i++) {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("r", "3");
+                circle.setAttribute("fill", "#00b6f2");
+                particlesGroup.appendChild(circle);
+                particles.push({
+                    el: circle,
+                    offset: i / numParticles,
+                    branch: i % 2 === 0 ? -1 : 1 // Left or right bronchus
+                });
+            }
+
+            function updateParticles(cycleProgress, isInhaling) {
+                particles.forEach(p => {
+                    // Progress along airway path (0 = top of trachea, 1 = deep alveoli)
+                    let t = (cycleProgress * 1.4 + p.offset) % 1;
+                    if (!isInhaling) {
+                        t = 1 - t; // Reverse flow on exhale
+                    }
+
+                    let x = 250;
+                    let y = 30 + t * 260;
+
+                    // Bifurcate after y = 165 (Carina)
+                    if (y > 165) {
+                        const branchProgress = (y - 165) / 125;
+                        x = 250 + p.branch * (branchProgress * 85);
+                    }
+
+                    p.el.setAttribute("cx", x);
+                    p.el.setAttribute("cy", y);
+                    p.el.setAttribute("fill", isInhaling ? "#00b6f2" : "#ff4d4d");
+                    p.el.setAttribute("opacity", Math.sin(t * Math.PI) * 0.85);
+                });
+            }
+
+            // Main Physiology Animation Loop
+            function animateBreathing(timestamp) {
+                if (!isPlaying) return;
+                if (!lastTimestamp) lastTimestamp = timestamp;
+
+                const deltaSeconds = (timestamp - lastTimestamp) / 1000;
+                lastTimestamp = timestamp;
+
+                // Angular velocity: 2*PI radians per breath cycle
+                const breathsPerSecond = bpm / 60;
+                breathPhase += deltaSeconds * breathsPerSecond * Math.PI * 2;
+
+                // Normalized sine wave: 0 (fully exhaled) to 1 (fully inhaled)
+                // Using -cos so phase 0 starts at rest/exhaled and rises smoothly
+                const sinVal = Math.sin(breathPhase);
+                const normBreath = (1 - Math.cos(breathPhase)) / 2; // 0 -> 1 -> 0
+                const isInhaling = sinVal >= 0;
+
+                // 1. Scale Lungs Smoothly
+                const scaleX = 1 + normBreath * expansionFactor;
+                const scaleY = 1 + normBreath * (expansionFactor * 1.15);
+                lungsGroup.setAttribute(
+                    'transform',
+                    `translate(250, 260) scale(${scaleX.toFixed(4)}, ${scaleY.toFixed(4)}) translate(-250, -260)`
+                );
+
+                // 2. Contract / Relax Diaphragm Dome
+                // Relaxed dome peak is y=385; contracted flattens down to y=435
+                const diaphragmPeakY = 385 + normBreath * (expansionFactor * 420);
+                diaphragmPath.setAttribute(
+                    'd',
+                    `M 85 455 Q 250 ${diaphragmPeakY.toFixed(1)} 415 455 Q 250 ${(diaphragmPeakY + 35).toFixed(1)} 85 455 Z`
+                );
+
+                // 3. Update Telemetry Readout
+                if (isInhaling) {
+                    phaseIndicator.textContent = "INHALE";
+                    phaseIndicator.style.color = "#00b6f2";
+                } else {
+                    phaseIndicator.textContent = "EXHALE";
+                    phaseIndicator.style.color = "#ff5c5c";
+                }
+
+                // Subtle O2 saturation oscillation (97.8% - 99.4%)
+                const o2 = (97.8 + normBreath * 1.6).toFixed(1);
+                o2Indicator.textContent = `${o2}%`;
+
+                // 4. Update Airflow Particles
+                const cycleProgress = (breathPhase % (Math.PI * 2)) / (Math.PI * 2);
+                updateParticles(cycleProgress, isInhaling);
+
+                requestAnimationFrame(animateBreathing);
+            }
+
+            // Start Animation
+            requestAnimationFrame(animateBreathing);
+        });
+    </script>
+</body>
+</html>
