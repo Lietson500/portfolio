@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Anthropocene Reviewed — Interactive Study Hub</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fdf8f6',
+                            100: '#f2e8e5',
+                            500: '#d97706',
+                            600: '#b45309',
+                            800: '#1c1917',
+                            900: '#0c0a09',
+                            gold: '#fbbf24',
+                            accent: '#38bdf8'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'Georgia', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&display=swap" rel="stylesheet">
+    <style>
+        [x-cloak] { display: none !important; }
+        .glass-panel {
+            background: rgba(28, 25, 23, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .light .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(217, 119, 6, 0.4);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(217, 119, 6, 0.7);
+        }
+    </style>
+</head>
+<body class="bg-stone-950 text-stone-100 font-sans min-h-screen transition-colors duration-300 selection:bg-amber-500 selection:text-stone-950" 
+      x-data="appData()" 
+      x-init="initApp()" 
+      :class="darkMode ? 'dark bg-stone-950 text-stone-100' : 'light bg-stone-50 text-stone-900'">
+
+    <!-- Top Toast Notification -->
+    <div x-show="toast.show" 
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="-translate-y-12 opacity-0"
+         x-transition:enter-end="translate-y-0 opacity-100"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="translate-y-0 opacity-100"
+         x-transition:leave-end="-translate-y-12 opacity-0"
+         class="fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border text-sm font-medium"
+         :class="darkMode ? 'bg-amber-500 text-stone-950 border-amber-400' : 'bg-stone-900 text-stone-100 border-stone-800'"
+         x-cloak>
+        <i data-lucide="check-circle" class="w-5 h-5"></i>
+        <span x-text="toast.message"></span>
+    </div>
+
+    <!-- Navigation Bar -->
+    <header class="sticky top-0 z-40 w-full border-b backdrop-blur-md transition-colors"
+            :class="darkMode ? 'border-stone-800 bg-stone-950/80' : 'border-stone-200 bg-stone-50/80'">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-amber-500 text-stone-950 flex items-center justify-center font-bold text-xl shadow-md font-serif">
+                    ★
+                </div>
+                <div>
+                    <h1 class="font-serif font-bold text-lg tracking-tight leading-none">The Anthropocene Reviewed</h1>
+                    <p class="text-xs text-amber-500 font-medium">Interactive ELA Survival Hub</p>
+                </div>
+            </div>
+
+            <!-- Desktop Nav Items -->
+            <nav class="hidden md:flex items-center gap-1 bg-stone-900/40 p-1 rounded-xl border border-stone-800/50" :class="!darkMode && 'bg-stone-200/50 border-stone-300/50'">
+                <template x-for="tab in tabs" :key="tab.id">
+                    <button @click="activeTab = tab.id" 
+                            class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2"
+                            :class="activeTab === tab.id ? 'bg-amber-500 text-stone-950 shadow-sm' : (darkMode ? 'text-stone-400 hover:text-stone-200' : 'text-stone-600 hover:text-stone-900')">
+                        <i :data-lucide="tab.icon" class="w-4 h-4"></i>
+                        <span x-text="tab.name"></span>
+                    </button>
+                </template>
+            </nav>
+
+            <div class="flex items-center gap-2">
+                <!-- Theme Toggle -->
+                <button @click="toggleDarkMode()" class="p-2 rounded-lg border transition-colors"
+                        :class="darkMode ? 'border-stone-800 hover:bg-stone-900 text-amber-400' : 'border-stone-300 hover:bg-stone-200 text-stone-700'"
+                        title="Toggle Light/Dark Theme">
+                    <i :data-lucide="darkMode ? 'sun' : 'moon'" class="w-4 h-4"></i>
+                </button>
+
+                <!-- GitHub Single-File Exporter -->
+                <button @click="copyFullCode()" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-500 hover:bg-amber-500/20 text-xs font-semibold transition-all">
+                    <i data-lucide="code-2" class="w-4 h-4"></i>
+                    <span>Copy HTML Code</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Strip -->
+        <div class="md:hidden flex overflow-x-auto gap-1 p-2 border-t custom-scrollbar" :class="darkMode ? 'border-stone-800 bg-stone-900/50' : 'border-stone-200 bg-stone-100/50'">
+            <template x-for="tab in tabs" :key="tab.id">
+                <button @click="activeTab = tab.id" 
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center gap-1.5"
+                        :class="activeTab === tab.id ? 'bg-amber-500 text-stone-950 font-bold' : (darkMode ? 'text-stone-400' : 'text-stone-600')">
+                    <i :data-lucide="tab.icon" class="w-3.5 h-3.5"></i>
+                    <span x-text="tab.name"></span>
+                </button>
+            </template>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- TAB 1: OVERVIEW & ESSAY EXPLORER -->
+        <section x-show="activeTab === 'overview'" x-transition class="space-y-8">
+            <!-- Hero / ELA Quick Summary Banner -->
+            <div class="relative overflow-hidden rounded-2xl p-6 sm:p-10 border glass-panel shadow-2xl">
+                <div class="absolute -top-24 -right-24 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div class="max-w-3xl space-y-4">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                        <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                        <span>Zero-Boredom ELA Guide</span>
+                    </div>
+                    <h2 class="text-3xl sm:text-5xl font-serif font-bold tracking-tight">
+                        Humanity, Reviewed on a <span class="text-amber-500">5-Star Scale</span>.
+                    </h2>
+                    <p class="text-stone-400 text-sm sm:text-base font-serif leading-relaxed">
+                        In <em class="text-stone-200">The Anthropocene Reviewed</em>, author John Green rates various facets of our human-dominated planet—from Diet Dr Pepper to Canada Geese—blending personal memoir, historical trivia, and philosophical wonder. 
+                    </p>
+                    <div class="pt-2 flex flex-wrap items-center gap-4 text-xs text-stone-400">
+                        <div class="flex items-center gap-1">
+                            <i data-lucide="book-open" class="w-4 h-4 text-amber-500"></i>
+                            <span>Non-Fiction Essay Collection</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <i data-lucide="globe" class="w-4 h-4 text-amber-500"></i>
+                            <span>Topic: The Anthropocene Era</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <i data-lucide="star" class="w-4 h-4 text-amber-500"></i>
+                            <span>Core Device: 5-Star Scale</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Essay Search & Filter Bar -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-xl font-serif font-bold">Key Essays Cheat Sheet</h3>
+                    <p class="text-xs text-stone-400">Quick plot summaries, key ratings, and golden quotes for homework.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="relative flex-1 sm:w-64">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-500"></i>
+                        <input type="text" x-model="searchQuery" placeholder="Search essays or topics..." 
+                               class="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-stone-900 border border-stone-800 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500">
+                    </div>
+                    <select x-model="ratingFilter" class="px-3 py-2 rounded-xl text-xs bg-stone-900 border border-stone-800 text-stone-100 focus:outline-none focus:border-amber-500">
+                        <option value="all">All Ratings</option>
+                        <option value="high">High Rated (4-5 Stars)</option>
+                        <option value="low">Low Rated (1-3 Stars)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Essays Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <template x-for="essay in filteredEssays" :key="essay.title">
+                    <div class="group flex flex-col justify-between rounded-2xl p-6 border transition-all duration-300 hover:border-amber-500/50 glass-panel shadow-lg hover:-translate-y-1">
+                        <div class="space-y-4">
+                            <div class="flex items-start justify-between gap-2">
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-stone-800 text-stone-300 border border-stone-700" x-text="essay.category"></span>
+                                <!-- Star Rating Display -->
+                                <div class="flex items-center gap-1 text-amber-400">
+                                    <span class="text-xs font-bold mr-1" x-text="essay.rating + '/5'"></span>
+                                    <template x-for="i in 5">
+                                        <i data-lucide="star" class="w-3.5 h-3.5" :class="i <= Math.floor(essay.rating) ? 'fill-amber-400 text-amber-400' : (i - 0.5 <= essay.rating ? 'fill-amber-400/50 text-amber-400' : 'text-stone-700')"></i>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 class="text-lg font-serif font-bold text-amber-500 group-hover:text-amber-400 transition-colors" x-text="essay.title"></h4>
+                                <p class="text-xs text-stone-400 mt-1" x-text="'Subject: ' + essay.subject"></p>
+                            </div>
+
+                            <div class="bg-stone-900/80 rounded-xl p-3 border border-stone-800/80">
+                                <span class="text-[10px] font-bold text-amber-500 uppercase tracking-wider block mb-1">TL;DR / Quick Summary</span>
+                                <p class="text-xs text-stone-300 leading-relaxed" x-text="essay.summary"></p>
+                            </div>
+
+                            <div class="border-l-2 border-amber-500/60 pl-3 py-1">
+                                <span class="text-[10px] uppercase font-semibold text-stone-400 block">Golden Quote</span>
+                                <p class="text-xs italic text-stone-300 font-serif mt-0.5" x-text="'“' + essay.quote + '”'"></p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-4 border-t border-stone-800/50 flex items-center justify-between text-[11px] text-stone-400">
+                            <span>Key Theme: <strong class="text-stone-200" x-text="essay.theme"></strong></span>
+                            <button @click="openEssayModal(essay)" class="text-amber-500 font-semibold hover:underline flex items-center gap-1">
+                                <span>Details</span>
+                                <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <!-- TAB 2: THEMES & ELA CHEAT SHEET -->
+        <section x-show="activeTab === 'themes'" x-transition class="space-y-8" x-cloak>
+            <div class="max-w-3xl space-y-2">
+                <h2 class="text-3xl font-serif font-bold">Core Themes & ELA Thesis Generator</h2>
+                <p class="text-sm text-stone-400">Use these major thematic pillars and instant thesis statements to breeze through your ELA essay assignments.</p>
+            </div>
+
+            <!-- Themes Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <template x-for="theme in themes" :key="theme.name">
+                    <div class="rounded-2xl p-6 border glass-panel space-y-4 shadow-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                <i :data-lucide="theme.icon" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-serif font-bold" x-text="theme.name"></h3>
+                                <p class="text-xs text-stone-400" x-text="theme.tagline"></p>
+                            </div>
+                        </div>
+
+                        <p class="text-xs text-stone-300 leading-relaxed" x-text="theme.description"></p>
+
+                        <div class="bg-stone-900/90 rounded-xl p-3 border border-stone-800 space-y-2">
+                            <span class="text-[10px] font-bold text-amber-500 uppercase tracking-wider">Essays That Prove This</span>
+                            <div class="flex flex-wrap gap-1.5">
+                                <template x-for="essay in theme.essays" :key="essay">
+                                    <span class="px-2 py-0.5 rounded-md text-[11px] bg-stone-800 text-stone-200 border border-stone-700" x-text="essay"></span>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-bold text-stone-400 uppercase">ELA Thesis Starter</span>
+                                <button @click="copyText(theme.thesis, 'Thesis copied to clipboard!')" class="text-[11px] text-amber-500 hover:underline flex items-center gap-1">
+                                    <i data-lucide="copy" class="w-3 h-3"></i>
+                                    <span>Copy Thesis</span>
+                                </button>
+                            </div>
+                            <div class="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-xs font-serif italic text-amber-200" x-text="theme.thesis"></div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Essay Prompt / Thesis Interactive Generator -->
+            <div class="rounded-2xl p-6 border border-stone-800 bg-stone-900/60 shadow-xl space-y-4">
+                <h3 class="text-xl font-serif font-bold text-amber-400 flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                    <span>Custom ELA Thesis Builder</span>
+                </h3>
+                <p class="text-xs text-stone-400">Select an essay and a thematic angle to generate a tailored thesis statement for your paper.</p>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-300 mb-1">Select Essay</label>
+                        <select x-model="thesisEssay" class="w-full px-3 py-2 rounded-xl text-xs bg-stone-950 border border-stone-800 text-stone-100 focus:outline-none focus:border-amber-500">
+                            <template x-for="essay in essays" :key="essay.title">
+                                <option :value="essay.title" x-text="essay.title"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-300 mb-1">Select Thematic Angle</label>
+                        <select x-model="thesisAngle" class="w-full px-3 py-2 rounded-xl text-xs bg-stone-950 border border-stone-800 text-stone-100 focus:outline-none focus:border-amber-500">
+                            <option value="wonder">Human Wonder & Everyday Grace</option>
+                            <option value="control">The Illusion of Human Control</option>
+                            <option value="vulnerability">Embracing Vulnerability & Hope</option>
+                            <option value="grief">Shared Memory & Overcoming Isolation</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-xl bg-stone-950 border border-amber-500/30 space-y-2">
+                    <span class="text-[10px] font-bold text-amber-500 uppercase tracking-wider block">Generated Thesis Statement:</span>
+                    <p class="text-sm font-serif text-stone-100" x-text="generateThesis()"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: KEY FIGURES / CHARACTERS -->
+        <section x-show="activeTab === 'characters'" x-transition class="space-y-8" x-cloak>
+            <div class="max-w-3xl space-y-2">
+                <h2 class="text-3xl font-serif font-bold">The "Cast" & Figures</h2>
+                <p class="text-sm text-stone-400">Although non-fiction, these recurring real-life people (and abstract concepts) act as the narrative anchors of the book.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <template x-for="figure in figures" :key="figure.name">
+                    <div class="rounded-2xl p-6 border glass-panel space-y-4 flex flex-col justify-between shadow-lg">
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-bold font-serif text-lg" x-text="figure.initials"></div>
+                                <div>
+                                    <h3 class="text-base font-serif font-bold" x-text="figure.name"></h3>
+                                    <span class="text-[11px] text-amber-500 font-medium" x-text="figure.role"></span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-stone-300 leading-relaxed" x-text="figure.bio"></p>
+                        </div>
+                        
+                        <div class="bg-stone-900/80 rounded-xl p-3 border border-stone-800 text-[11px] text-stone-400">
+                            <strong class="text-amber-400 block mb-1">Key Significance in Essays:</strong>
+                            <span x-text="figure.significance"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <!-- TAB 4: INTERACTIVE AI CHAT WITH CHARACTERS -->
+        <section x-show="activeTab === 'chat'" x-transition class="space-y-6" x-cloak>
+            <div class="max-w-3xl space-y-2">
+                <h2 class="text-3xl font-serif font-bold">Chat with the Book</h2>
+                <p class="text-sm text-stone-400">Talk to John Green, Amy Krouse Rosenthal, The Anthropocene, or an ELA Homework Coach powered by Gemini API.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Persona Selection Sidebar -->
+                <div class="space-y-3 lg:col-span-1">
+                    <label class="text-xs font-bold uppercase tracking-wider text-stone-400 block">Choose Persona</label>
+                    <template x-for="p in chatPersonas" :key="p.id">
+                        <button @click="switchPersona(p)" 
+                                class="w-full text-left p-3 rounded-xl border transition-all flex items-center gap-3"
+                                :class="selectedPersona.id === p.id ? 'bg-amber-500/10 border-amber-500 text-amber-400 shadow-md' : 'border-stone-800 bg-stone-900/50 hover:bg-stone-800/50 text-stone-300'">
+                            <span class="text-2xl" x-text="p.avatar"></span>
+                            <div>
+                                <div class="font-serif text-xs font-bold" x-text="p.name"></div>
+                                <div class="text-[10px] text-stone-400 truncate max-w-[140px]" x-text="p.desc"></div>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+
+                <!-- Chat Box Area -->
+                <div class="lg:col-span-3 rounded-2xl border border-stone-800 glass-panel flex flex-col h-[550px] shadow-2xl">
+                    <!-- Chat Header -->
+                    <div class="p-4 border-b border-stone-800/80 flex items-center justify-between bg-stone-900/60 rounded-t-2xl">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl" x-text="selectedPersona.avatar"></span>
+                            <div>
+                                <h3 class="font-serif font-bold text-sm" x-text="selectedPersona.name"></h3>
+                                <p class="text-[11px] text-amber-500" x-text="selectedPersona.status"></p>
+                            </div>
+                        </div>
+                        <button @click="clearChat()" class="text-xs text-stone-400 hover:text-stone-200 flex items-center gap-1">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            <span>Clear</span>
+                        </button>
+                    </div>
+
+                    <!-- Chat Messages list -->
+                    <div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar" id="chatContainer">
+                        <template x-for="(msg, index) in chatMessages" :key="index">
+                            <div class="flex gap-3 max-w-[85%]" :class="msg.role === 'user' ? 'ml-auto flex-row-reverse' : ''">
+                                <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold shadow"
+                                     :class="msg.role === 'user' ? 'bg-amber-500 text-stone-950' : 'bg-stone-800 border border-stone-700 text-stone-200'">
+                                    <span x-text="msg.role === 'user' ? 'You' : selectedPersona.avatar"></span>
+                                </div>
+                                <div class="p-3.5 rounded-2xl text-xs space-y-1"
+                                     :class="msg.role === 'user' ? 'bg-amber-500 text-stone-950 font-medium rounded-tr-none' : 'bg-stone-900 border border-stone-800 text-stone-200 rounded-tl-none font-serif leading-relaxed'">
+                                    <p class="whitespace-pre-wrap" x-text="msg.text"></p>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div x-show="isGenerating" class="flex gap-2 items-center text-xs text-amber-500 font-medium p-2">
+                            <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                            <span x-text="selectedPersona.name + ' is thinking...'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Suggested Prompts / Starter Chips -->
+                    <div class="px-4 py-2 border-t border-stone-800/50 flex gap-2 overflow-x-auto custom-scrollbar bg-stone-950/40">
+                        <template x-for="starter in selectedPersona.starters" :key="starter">
+                            <button @click="sendMessage(starter)" class="px-3 py-1 rounded-full text-[11px] bg-stone-900 hover:bg-amber-500/20 text-stone-300 border border-stone-800 hover:border-amber-500/40 whitespace-nowrap transition-all">
+                                <span x-text="starter"></span>
+                            </button>
+                        </template>
+                    </div>
+
+                    <!-- Message Input -->
+                    <div class="p-3 border-t border-stone-800 bg-stone-900/80 rounded-b-2xl flex items-center gap-2">
+                        <input type="text" x-model="userInput" @keydown.enter="sendMessage()" placeholder="Ask a question or debate a star rating..." 
+                               class="flex-1 px-4 py-2.5 rounded-xl text-xs bg-stone-950 border border-stone-800 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500">
+                        <button @click="sendMessage()" :disabled="isGenerating || !userInput.trim()" 
+                                class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs transition-all disabled:opacity-50 flex items-center gap-1.5">
+                            <span>Send</span>
+                            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: RATE YOUR OWN LIFE WIDGET -->
+        <section x-show="activeTab === 'rate'" x-transition class="space-y-8" x-cloak>
+            <div class="max-w-3xl space-y-2">
+                <h2 class="text-3xl font-serif font-bold">Rate Your Own Life</h2>
+                <p class="text-sm text-stone-400">Review any ordinary item, daily struggle, or modern luxury in John Green's 5-star style.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Interactive Form -->
+                <div class="rounded-2xl p-6 border glass-panel space-y-5 shadow-xl">
+                    <h3 class="text-lg font-serif font-bold text-amber-500 flex items-center gap-2">
+                        <i data-lucide="edit-3" class="w-5 h-5"></i>
+                        <span>Write a Micro-Review</span>
+                    </h3>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-stone-300 mb-1">What are you reviewing?</label>
+                            <input type="text" x-model="userReview.subject" placeholder="e.g., Cafeteria Pizza, 7 AM Alarms, Wireless Earbuds..." 
+                                   class="w-full px-3 py-2 rounded-xl text-xs bg-stone-900 border border-stone-800 text-stone-100 focus:outline-none focus:border-amber-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-stone-300 mb-1">Star Rating (1 to 5 Stars)</label>
+                            <div class="flex items-center gap-2">
+                                <template x-for="star in [1, 2, 3, 4, 5]" :key="star">
+                                    <button @click="userReview.rating = star" class="p-1 text-2xl transition-transform hover:scale-125 focus:outline-none">
+                                        <i data-lucide="star" class="w-6 h-6" :class="star <= userReview.rating ? 'fill-amber-400 text-amber-400' : 'text-stone-700'"></i>
+                                    </button>
+                                </template>
+                                <span class="text-xs font-bold text-amber-400 ml-2" x-text="userReview.rating + ' Star' + (userReview.rating > 1 ? 's' : '')"></span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-stone-300 mb-1">Your Key Thought / Rant</label>
+                            <textarea x-model="userReview.thoughts" rows="3" placeholder="Why do you love or hate it? Add a nostalgic memory or funny detail..." 
+                                      class="w-full px-3 py-2 rounded-xl text-xs bg-stone-900 border border-stone-800 text-stone-100 focus:outline-none focus:border-amber-500"></textarea>
+                        </div>
+
+                        <button @click="generateJohnGreenReview()" :disabled="isGeneratingReview || !userReview.subject.trim()"
+                                class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs transition-all shadow-lg flex items-center justify-center gap-2">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            <span x-text="isGeneratingReview ? 'Transforming into John Green Essay...' : 'John-Green-ify My Review'"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Review Output / Card Wall -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-serif font-bold text-stone-200">Generated Review Cards</h3>
+                    
+                    <template x-if="userReviewsList.length === 0">
+                        <div class="p-8 rounded-2xl border border-dashed border-stone-800 text-center text-stone-500 space-y-2">
+                            <i data-lucide="star-off" class="w-8 h-8 mx-auto opacity-50"></i>
+                            <p class="text-xs">No micro-reviews created yet. Write one on the left to see magic happen!</p>
+                        </div>
+                    </template>
+
+                    <div class="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
+                        <template x-for="(rev, idx) in userReviewsList" :key="idx">
+                            <div class="rounded-2xl p-5 border border-amber-500/30 bg-stone-900/90 shadow-xl space-y-3 relative group">
+                                <button @click="deleteReview(idx)" class="absolute top-4 right-4 text-stone-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                                
+                                <div class="flex items-center justify-between">
+                                    <h4 class="font-serif font-bold text-amber-400 text-base" x-text="rev.subject"></h4>
+                                    <div class="flex items-center gap-0.5 text-amber-400">
+                                        <template x-for="s in 5">
+                                            <i data-lucide="star" class="w-3.5 h-3.5" :class="s <= rev.rating ? 'fill-amber-400 text-amber-400' : 'text-stone-800'"></i>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <p class="text-xs text-stone-300 font-serif leading-relaxed italic" x-text="rev.generatedText"></p>
+                                
+                                <div class="pt-2 border-t border-stone-800 flex items-center justify-between text-[10px] text-stone-400">
+                                    <span x-text="'Final Verdict: ' + rev.rating + ' / 5 Stars'"></span>
+                                    <button @click="copyText(rev.generatedText, 'Essay copied!')" class="text-amber-500 hover:underline flex items-center gap-1">
+                                        <i data-lucide="copy" class="w-3 h-3"></i>
+                                        <span>Copy Essay</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Detailed Essay Modal -->
+    <div x-show="essayModal.show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm" x-cloak x-transition>
+        <div @click.outside="essayModal.show = false" class="max-w-2xl w-full rounded-2xl border border-stone-800 bg-stone-900 p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <button @click="essayModal.show = false" class="absolute top-4 right-4 text-stone-400 hover:text-stone-100">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <template x-if="essayModal.essay">
+                <div class="space-y-4">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase" x-text="essayModal.essay.category"></span>
+                        <div class="flex items-center gap-1 text-amber-400 text-xs font-bold">
+                            ★ <span x-text="essayModal.essay.rating + ' / 5 Stars'"></span>
+                        </div>
+                    </div>
+
+                    <h3 class="text-2xl font-serif font-bold text-amber-400" x-text="essayModal.essay.title"></h3>
+
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-stone-400">Deep Dive Analysis</h4>
+                        <p class="text-xs text-stone-300 leading-relaxed font-serif" x-text="essayModal.essay.deepDive"></p>
+                    </div>
+
+                    <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 space-y-2">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-amber-500">Key Takeaways for ELA Class</h4>
+                        <ul class="text-xs text-stone-300 space-y-1.5 list-disc pl-4">
+                            <template x-for="point in essayModal.essay.elaPoints" :key="point">
+                                <li x-text="point"></li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <div class="p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-xs italic font-serif text-amber-200" x-text="'“' + essayModal.essay.quote + '”'"></div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        function appData() {
+            return {
+                darkMode: true,
+                activeTab: 'overview',
+                searchQuery: '',
+                ratingFilter: 'all',
+                userInput: '',
+                isGenerating: false,
+                isGeneratingReview: false,
+                toast: { show: false, message: '' },
+
+                // Thesis Generator State
+                thesisEssay: 'You’ll Never Walk Alone',
+                thesisAngle: 'wonder',
+
+                // User Micro-Reviews
+                userReview: { subject: '', rating: 4, thoughts: '' },
+                userReviewsList: [
+                    {
+                        subject: 'Cafeteria Pizza',
+                        rating: 2,
+                        generatedText: 'Cafeteria pizza exists at the strange intersection of nostalgia and cardboard. It is never truly great, yet on a rainy Tuesday, its greasy mozzarella offers a bizarre sense of comfort. I give Cafeteria Pizza two stars.',
+                    }
+                ],
+
+                // Modal state
+                essayModal: { show: false, essay: null },
+
+                // Navigation Tabs
+                tabs: [
+                    { id: 'overview', name: 'Essays Explorer', icon: 'book-open' },
+                    { id: 'themes', name: 'Themes & ELA Cheat Sheet', icon: 'sparkles' },
+                    { id: 'characters', name: 'Key Figures', icon: 'users' },
+                    { id: 'chat', name: 'AI Character Chat', icon: 'message-square' },
+                    { id: 'rate', name: 'Rate Your Life', icon: 'star' }
+                ],
+
+                // Essays Data
+                essays: [
+                    {
+                        title: 'You’ll Never Walk Alone',
+                        subject: 'Liverpool FC anthem & human solidarity',
+                        rating: 5,
+                        category: 'Community & Hope',
+                        theme: 'Connection vs Isolation',
+                        summary: 'Explores the history of the Rodgers and Hammerstein song that became the anthem for Liverpool FC. Green examines how collective singing creates profound human connection amidst grief.',
+                        quote: 'To walk through the wind, you must first believe that the wind will end.',
+                        deepDive: 'Green reflects on his own mental health struggles and panic attacks, arguing that shared rituals and anthems provide a vital shield against despair.',
+                        elaPoints: [
+                            'Demonstrates music as a vessel for communal healing.',
+                            'Contrasts individual isolation with collective strength.',
+                            'Ideal essay for themes of hope, resilience, and mental health.'
+                        ]
+                    },
+                    {
+                        title: 'Halley’s Comet',
+                        subject: 'Cosmic passage & fatherhood',
+                        rating: 4.5,
+                        category: 'Cosmic Wonder',
+                        theme: 'Finding Wonder in Mundane',
+                        summary: 'Recalls seeing Halley’s Comet as a child with his father and realizing how briefly humans exist in cosmic time.',
+                        quote: 'We are so small, but we are capable of looking up.',
+                        deepDive: 'Blends astronomy with tender memories of fatherhood and aging, highlighting our instinct to pass wonder across generations.',
+                        elaPoints: [
+                            'Uses celestial events as a metaphor for fleeting human lifespans.',
+                            'Explores themes of nostalgia and parent-child bonds.',
+                            'Great for essays on human scale and awe.'
+                        ]
+                    },
+                    {
+                        title: 'Diet Dr Pepper',
+                        subject: 'Artificial perfection & nostalgia',
+                        rating: 4,
+                        category: 'Modern Consumerism',
+                        theme: 'Finding Wonder in Mundane',
+                        summary: 'A hilarious yet poignant tribute to a synthetic soda that tries so hard to imitate taste, symbolizing human craving for comfort.',
+                        quote: 'It tastes nothing like Dr Pepper, and yet it tastes like human hope.',
+                        deepDive: 'Green breaks down the chemistry of artificial sweeteners to reflect on how humanity creates synthetic solutions for emotional longings.',
+                        elaPoints: [
+                            'Symbolizes the artificial nature of modern comfort.',
+                            'Highlights Green’s signature blend of humor and philosophy.',
+                            'Useful for analyzing irony in non-fiction.'
+                        ]
+                    },
+                    {
+                        title: 'Canada Geese',
+                        subject: 'Nature’s aggressive survival',
+                        rating: 2,
+                        category: 'Nature & Conflict',
+                        theme: 'Paradox of Human Impact',
+                        summary: 'Examines why humans despise Canada Geese despite creating the exact manicured lawns and parks where they thrive.',
+                        quote: 'We built them a paradise, and then hated them for living in it.',
+                        deepDive: 'A sharp critique of human entitlement over nature, pointing out how we reshape ecosystems and then complain about the consequences.',
+                        elaPoints: [
+                            'Exposes the irony of human environmental control.',
+                            'Uses humor to critique human self-centeredness.',
+                            'Perfect essay for environmental ELA prompts.'
+                        ]
+                    },
+                    {
+                        title: 'The Yips',
+                        subject: 'Performance anxiety & mental blocks',
+                        rating: 1.5,
+                        category: 'Psychology',
+                        theme: 'Vulnerability & Mental Health',
+                        summary: 'Analyzes the sudden, mysterious loss of motor skills in athletes and how anxiety destroys natural instinct.',
+                        quote: 'The yips are proof that conscious thought can be a cage.',
+                        deepDive: 'Connects athletic failure to general human self-doubt and obsessive thinking, illustrating how hyper-awareness breeds paralysis.',
+                        elaPoints: [
+                            'Explores the dark side of self-consciousness.',
+                            'Connects sports psychology to literary themes of anxiety.',
+                            'Key evidence for mental health themes.'
+                        ]
+                    },
+                    {
+                        title: 'Scratch ’n’ Sniff Stickers',
+                        subject: 'Sensory memory & childhood nostalgia',
+                        rating: 3.5,
+                        category: 'Nostalgia',
+                        theme: 'Finding Wonder in Mundane',
+                        summary: 'Reflects on the 1980s trend of scented stickers and how smell triggers immediate, vivid emotional memory.',
+                        quote: 'Nostalgia is a way of gripping the past without being bruised by it.',
+                        deepDive: 'Investigates the biology of smell and the bittersweet nature of childhood memories.',
+                        elaPoints: [
+                            'Analyzes sensory imagery as a literary device.',
+                            'Examines nostalgia as both comforting and deceptive.'
+                        ]
+                    },
+                    {
+                        title: 'Auld Lang Syne',
+                        subject: 'New Year’s Eve & grief',
+                        rating: 5,
+                        category: 'Rituals & Grief',
+                        theme: 'Connection vs Isolation',
+                        summary: 'Unpacks the global tradition of singing a song whose lyrics no one fully understands, emphasizing remembrance.',
+                        quote: 'We sing it because we are still here, together.',
+                        deepDive: 'Green shares a moving story about working as a hospital chaplain, showing how rituals help humans survive unbearable loss.',
+                        elaPoints: [
+                            'Highlights the power of shared human tradition.',
+                            'Explores grief with empathy and deep reverence.',
+                            'Top recommended essay for major synthesis essays.'
+                        ]
+                    }
+                ],
+
+                // Themes Data
+                themes: [
+                    {
+                        name: 'Finding Wonder in the Ordinary',
+                        tagline: 'Awe isn’t reserved for stars; it lives in soda cans.',
+                        icon: 'sparkles',
+                        description: 'Green constantly argues that human happiness depends on cultivating curiosity for small, unglamorous things like Dr Pepper or stickers.',
+                        essays: ['Diet Dr Pepper', 'Scratch ’n’ Sniff Stickers', 'Halley’s Comet'],
+                        thesis: 'In The Anthropocene Reviewed, John Green demonstrates that true wonder is not found in grand cosmic events, but in cultivating intentional attentiveness toward the ordinary artifacts of daily life.'
+                    },
+                    {
+                        name: 'The Paradox of Human Impact',
+                        tagline: 'We reshape the planet, often with absurd results.',
+                        icon: 'globe',
+                        description: 'Humanity dominates the Earth, yet our attempts to conquer nature frequently create unexpected chaos and ironies.',
+                        essays: ['Canada Geese', 'Kentucky Bluegrass'],
+                        thesis: 'Through his analysis of human environmental modifications, Green illustrates the tragicomic paradox of the Anthropocene: humanity’s obsession with controlling nature inevitably turns against itself.'
+                    },
+                    {
+                        name: 'Vulnerability & Mental Health',
+                        tagline: 'Being human means carrying fear and anxiety.',
+                        icon: 'heart-pulse',
+                        description: 'Green openly shares his struggles with OCD and anxiety, showing that acknowledging vulnerability is essential to genuine hope.',
+                        essays: ['The Yips', 'You’ll Never Walk Alone'],
+                        thesis: 'By intertwining personal memoir with historical commentary, Green argues that embracing human vulnerability—rather than concealing mental illness—is the foundation of genuine courage.'
+                    },
+                    {
+                        name: 'Connection vs. Isolation',
+                        tagline: 'We survive grief through collective memory.',
+                        icon: 'users',
+                        description: 'Singing anthems or holding hands across history helps humanity resist the crushing weight of loneliness and loss.',
+                        essays: ['Auld Lang Syne', 'You’ll Never Walk Alone'],
+                        thesis: 'Green utilizes shared human rituals to emphasize that collective memory and solidarity serve as humanity’s primary armor against individual isolation and grief.'
+                    }
+                ],
+
+                // Real Life Figures
+                figures: [
+                    {
+                        name: 'John Green',
+                        role: 'Author & Narrator',
+                        initials: 'JG',
+                        bio: 'Anxious, deeply curious, and self-deprecating essayist obsessed with history, sports, and star ratings.',
+                        significance: 'Acts as the relatable, flawed lens through which the Anthropocene is evaluated.'
+                    },
+                    {
+                        name: 'Sarah Urist Green',
+                        role: 'Wife & Art Curator',
+                        initials: 'SG',
+                        bio: 'John’s grounding partner, creator of The Art Assignment, offering artistic wisdom and clarity.',
+                        significance: 'Represents quiet wisdom, balance, and artistic perspective throughout the essays.'
+                    },
+                    {
+                        name: 'Amy Krouse Rosenthal',
+                        role: 'Author & Close Friend',
+                        initials: 'AR',
+                        bio: 'Beloved children’s book author who lived with joy, generosity, and whimsical creative energy.',
+                        significance: 'Her life and tragic death from cancer inspire Green’s reflections on grief, love, and wonder.'
+                    },
+                    {
+                        name: 'Humanity / Anthropocene',
+                        role: 'The Abstract "Character"',
+                        initials: 'HA',
+                        bio: 'The collective 8 billion humans shaping, polluting, loving, and singing on Earth.',
+                        significance: 'The ultimate subject of review—both remarkably destructive and astonishingly beautiful.'
+                    }
+                ],
+
+                // Chat Personas & State
+                chatPersonas: [
+                    {
+                        id: 'john',
+                        name: 'John Green',
+                        avatar: '✍️',
+                        status: 'Anxious & Thoughtful',
+                        desc: 'Full of trivia, vulnerable, rates everything',
+                        starters: [
+                            "What star rating would you give high school ELA class?",
+                            "Why are you so obsessed with Diet Dr Pepper?",
+                            "How do I write a good thesis statement for your book?"
+                        ]
+                    },
+                    {
+                        id: 'amy',
+                        name: 'Amy Krouse Rosenthal',
+                        avatar: '✨',
+                        status: 'Warm & Whimsical',
+                        desc: 'Encouraging, creative, joyful energy',
+                        starters: [
+                            "How can I find wonder when I feel overwhelmed?",
+                            "What was your philosophy on creative living?",
+                            "How can I make reading less boring?"
+                        ]
+                    },
+                    {
+                        id: 'anthropocene',
+                        name: 'The Anthropocene',
+                        avatar: '🌍',
+                        status: 'Ancient & Cosmic',
+                        desc: 'Dramatic entity embodying Earth’s human era',
+                        starters: [
+                            "What do you think of humanity’s impact on Earth?",
+                            "Will humans survive their own creation?",
+                            "Rate plastic water bottles."
+                        ]
+                    },
+                    {
+                        id: 'ela_coach',
+                        name: 'ELA Homework Coach',
+                        avatar: '🎓',
+                        status: 'Direct & Helpful',
+                        desc: 'Fast homework help, outlines, and quotes',
+                        starters: [
+                            "Give me a 3-paragraph outline for an essay on this book.",
+                            "What is the main theme of 'You'll Never Walk Alone'?",
+                            "Give me 3 golden quotes I can cite in my paper."
+                        ]
+                    }
+                ],
+                selectedPersona: null,
+                chatMessages: [],
+
+                // Init Application
+                initApp() {
+                    this.selectedPersona = this.chatPersonas[0];
+                    this.resetChatForPersona();
+                    this.$nextTick(() => lucide.createIcons());
+                },
+
+                toggleDarkMode() {
+                    this.darkMode = !this.darkMode;
+                    this.$nextTick(() => lucide.createIcons());
+                },
+
+                // Filter Essays Logic
+                get filteredEssays() {
+                    return this.essays.filter(e => {
+                        const matchesSearch = e.title.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
+                                              e.subject.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                                              e.theme.toLowerCase().includes(this.searchQuery.toLowerCase());
+                        
+                        if (this.ratingFilter === 'high') return matchesSearch && e.rating >= 4;
+                        if (this.ratingFilter === 'low') return matchesSearch && e.rating < 4;
+                        return matchesSearch;
+                    });
+                },
+
+                openEssayModal(essay) {
+                    this.essayModal.essay = essay;
+                    this.essayModal.show = true;
+                    this.$nextTick(() => lucide.createIcons());
+                },
+
+                // Thesis Statement Builder
+                generateThesis() {
+                    const essay = this.essays.find(e => e.title === this.thesisEssay) || this.essays[0];
+                    if (this.thesisAngle === 'wonder') {
+                        return `In "${essay.title}," John Green utilizes the ordinary subject of ${essay.subject} to argue that cultivating intentional awe is humanity's most effective antidote to modern despair.`;
+                    } else if (this.thesisAngle === 'control') {
+                        return `Through his critique in "${essay.title}," Green exposes how humanity's persistent drive to control the natural world ultimate reveals our own fragility and hubris.`;
+                    } else if (this.thesisAngle === 'vulnerability') {
+                        return `By pairing personal confession with cultural history in "${essay.title}," Green demonstrates that embracing mental vulnerability is necessary to forge authentic human connections.`;
+                    } else {
+                        return `In "${essay.title}," Green highlights how collective memory and shared rituals allow individuals to transcend isolation and endure profound grief.`;
+                    }
+                },
+
+                // Chat Logic
+                switchPersona(p) {
+                    this.selectedPersona = p;
+                    this.resetChatForPersona();
+                },
+
+                resetChatForPersona() {
+                    this.chatMessages = [
+                        {
+                            role: 'model',
+                            text: this.getInitialGreeting(this.selectedPersona.id)
+                        }
+                    ];
+                },
+
+                getInitialGreeting(personaId) {
+                    if (personaId === 'john') {
+                        return "Hi, I'm John Green. I'm currently thinking about how strange it is that we rate everything from restaurants to movies, yet rarely stop to review the world itself. What's on your mind? I give this conversation 4.5 stars in advance.";
+                    } else if (personaId === 'amy') {
+                        return "Hello! I'm Amy. I always believed that if you pay attention, life is overflowing with tiny miracles and yellow lights. What creative idea or assignment are you working on today?";
+                    } else if (personaId === 'anthropocene') {
+                        return "I am the Anthropocene—the age of concrete, microplastics, smartphones, and overwhelming human longing. Ask me of my lands, your species, or your brief moment here.";
+                    } else {
+                        return "Hey there! Need quick ELA help so you can finish your homework and get back to your life? Ask me for thesis outlines, quote analysis, or essay summaries!";
+                    }
+                },
+
+                clearChat() {
+                    this.resetChatForPersona();
+                },
+
+                async sendMessage(customText = null) {
+                    const textToSend = customText || this.userInput;
+                    if (!textToSend.trim() || this.isGenerating) return;
+
+                    this.chatMessages.push({ role: 'user', text: textToSend });
+                    if (!customText) this.userInput = '';
+                    this.isGenerating = true;
+                    this.scrollToBottom();
+
+                    try {
+                        const reply = await this.callGeminiAPI(textToSend);
+                        this.chatMessages.push({ role: 'model', text: reply });
+                    } catch (err) {
+                        // Fallback response if offline/error
+                        const fallbackReply = this.getFallbackReply(textToSend);
+                        this.chatMessages.push({ role: 'model', text: fallbackReply });
+                    } finally {
+                        this.isGenerating = false;
+                        this.scrollToBottom();
+                        this.$nextTick(() => lucide.createIcons());
+                    }
+                },
+
+                scrollToBottom() {
+                    this.$nextTick(() => {
+                        const container = document.getElementById('chatContainer');
+                        if (container) container.scrollTop = container.scrollHeight;
+                    });
+                },
+
+                async callGeminiAPI(prompt) {
+                    const apiKey = ""; // Runtime provided
+                    const systemInstructions = {
+                        john: "You are John Green, author of The Anthropocene Reviewed. Speak thoughtfully, vulnerably, with self-deprecating humor and obscure trivia. ALWAYS end your response by giving whatever topic was discussed a rating out of 5 stars (e.g., 'I give [Topic] 4 stars.'). Keep responses under 120 words.",
+                        amy: "You are Amy Krouse Rosenthal. Speak with warmth, optimism, whimsical creativity, and encouragement. Focus on micro-moments of joy and kindness. Keep under 110 words.",
+                        anthropocene: "You are the Anthropocene itself—an ancient, cosmic, slightly dramatic entity representing the human-dominated geological epoch. Speak with grand perspective yet intimate knowledge of modern items like iPhones or fast food. Keep under 120 words.",
+                        ela_coach: "You are a concise, helpful high-school ELA homework coach. Provide direct, structured bullet points, clear thesis statements, and quotes for students who want to quickly understand The Anthropocene Reviewed. Keep under 130 words."
+                    };
+
+                    const payload = {
+                        contents: [
+                            {
+                                role: 'user',
+                                parts: [{ text: prompt }]
+                            }
+                        ],
+                        systemInstruction: {
+                            parts: [{ text: systemInstructions[this.selectedPersona.id] }]
+                        }
+                    };
+
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+                    
+                    const res = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!res.ok) throw new Error('API request failed');
+
+                    const data = await res.json();
+                    return data.candidates[0].content.parts[0].text;
+                },
+
+                getFallbackReply(userText) {
+                    const text = userText.toLowerCase();
+                    if (this.selectedPersona.id === 'john') {
+                        if (text.includes('ela') || text.includes('homework') || text.includes('essay')) {
+                            return "The trick to writing an ELA essay on my book is focusing on how small mundane objects reflect huge human emotions. Take Diet Dr Pepper—it's fake soda, but it reveals our deep human desire for sweetness and comfort. I give ELA essays about my work 4 stars.";
+                        }
+                        return "That's a fascinating thing to reflect on. In the grand timeline of planet Earth, human beings spend so much energy worrying about this very topic, which is both absurd and deeply moving. I give this thought 4.5 stars.";
+                    } else if (this.selectedPersona.id === 'ela_coach') {
+                        return "Here is a quick study tip: The Anthropocene Reviewed isn't about facts; it's about *meaning*. When John Green reviews Canada Geese or Halley's Comet, he is really reviewing human hope, fear, and desire for connection.";
+                    } else {
+                        return "Looking at this through the lens of human history, every tiny choice we make leaves a mark on the planet and on each other. That interconnectedness is what makes the Anthropocene so complex and beautiful.";
+                    }
+                },
+
+                // Rate Your Life Feature
+                async generateJohnGreenReview() {
+                    if (!this.userReview.subject.trim()) return;
+                    this.isGeneratingReview = true;
+
+                    const prompt = `Write a short 3-sentence micro-essay in the style of John Green's 'The Anthropocene Reviewed' about "${this.userReview.subject}". The user gives it ${this.userReview.rating} out of 5 stars. Key user thought: "${this.userReview.thoughts}". Blend humor, nostalgia, and philosophical wonder. Finish with: "I give ${this.userReview.subject} ${this.userReview.rating} stars."`;
+
+                    try {
+                        const apiKey = "";
+                        const payload = {
+                            contents: [{ parts: [{ text: prompt }] }],
+                            systemInstruction: { parts: [{ text: "You are John Green writing a micro-review for your podcast/book." }] }
+                        };
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+                        const res = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        const data = await res.json();
+                        const genText = data.candidates[0].content.parts[0].text;
+
+                        this.userReviewsList.unshift({
+                            subject: this.userReview.subject,
+                            rating: this.userReview.rating,
+                            generatedText: genText
+                        });
+                    } catch (e) {
+                        // Fallback generator
+                        const fallbackText = `${this.userReview.subject} exists at a strange intersection of daily utility and existential absurdity. ${this.userReview.thoughts || 'We encounter it daily without realizing how much it shapes our human routine.'} In the end, it reminds us of how delightfully weird it is to be alive on this planet right now. I give ${this.userReview.subject} ${this.userReview.rating} stars.`;
+                        
+                        this.userReviewsList.unshift({
+                            subject: this.userReview.subject,
+                            rating: this.userReview.rating,
+                            generatedText: fallbackText
+                        });
+                    } finally {
+                        this.isGeneratingReview = false;
+                        this.userReview.subject = '';
+                        this.userReview.thoughts = '';
+                        this.showToast('Micro-review added to wall!');
+                        this.$nextTick(() => lucide.createIcons());
+                    }
+                },
+
+                deleteReview(idx) {
+                    this.userReviewsList.splice(idx, 1);
+                },
+
+                // Utilities
+                copyText(text, msg = 'Copied to clipboard!') {
+                    const tempInput = document.createElement('textarea');
+                    tempInput.value = text;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                    this.showToast(msg);
+                },
+
+                copyFullCode() {
+                    const htmlContent = document.documentElement.outerHTML;
+                    this.copyText(htmlContent, 'Single-File HTML Code copied for GitHub!');
+                },
+
+                showToast(message) {
+                    this.toast.message = message;
+                    this.toast.show = true;
+                    setTimeout(() => {
+                        this.toast.show = false;
+                    }, 3000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
